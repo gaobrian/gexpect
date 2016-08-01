@@ -146,6 +146,14 @@ func Spawn(command string) (*ExpectSubprocess, error) {
 	return _start(expect)
 }
 
+func SpawnW(command string, args ...string) (*ExpectSubprocess, error) {
+	expect, err := _spawnw(command, args...)
+	if err != nil {
+		return nil, err
+	}
+	return _start(expect)
+}
+
 func (expect *ExpectSubprocess) Close() error {
 	if err := expect.Cmd.Process.Kill(); err != nil {
 		return err
@@ -387,7 +395,7 @@ func (expect *ExpectSubprocess) ReadUntil(delim byte) ([]byte, error) {
 		for i := 0; i < n; i++ {
 			if chunk[i] == delim {
 				if len(chunk) > i+1 {
-					expect.buf.PutBack(chunk[i+1:n])
+					expect.buf.PutBack(chunk[i+1 : n])
 				}
 				return join, nil
 			} else {
@@ -440,6 +448,26 @@ func _spawn(command string) (*ExpectSubprocess, error) {
 
 	if numArguments >= 1 {
 		wrapper.Cmd = exec.Command(path, splitArgs[1:]...)
+	} else {
+		wrapper.Cmd = exec.Command(path)
+	}
+	wrapper.buf = new(buffer)
+
+	return wrapper, nil
+}
+
+func _spawnw(command string, args ...string) (*ExpectSubprocess, error) {
+	wrapper := new(ExpectSubprocess)
+
+	wrapper.outputBuffer = nil
+
+	path, err := exec.LookPath(command)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(args) > 0 {
+		wrapper.Cmd = exec.Command(path, args...)
 	} else {
 		wrapper.Cmd = exec.Command(path)
 	}
